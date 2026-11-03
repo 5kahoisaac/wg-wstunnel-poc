@@ -10,3 +10,14 @@ peer_home.conf
 vps/config/
 office/config-office/peer_*/
 office/config-office/*.key
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
