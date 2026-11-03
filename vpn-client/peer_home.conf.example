@@ -1,0 +1,20 @@
+# ── Home-side WireGuard VPN Client config (router OR host) — EXAMPLE ─────────
+# This is generated on the VPS as /config/peer_home/peer_home.conf.
+# The keys below are PLACEHOLDERS — use the ones your own VPS generates.
+# Then edit the three marked lines before importing into the UDR.
+
+[Interface]
+# NOTE: the UDR requires a netmask, or it rejects the file. Keep the /24.
+Address = 10.13.13.2/24
+PrivateKey = <PRIVATE_KEY_FROM_YOUR_VPS_peer_home.conf>
+ListenPort = 51820
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = <PUBLIC_KEY_FROM_YOUR_VPS_peer_home.conf>
+PresharedKey = <PRESHARED_KEY_FROM_YOUR_VPS_peer_home.conf>
+# Point at your VPS public IP + the WireGuard UDP port:
+Endpoint = 203.0.113.10:51820
+# Overlay + your OFFICE_ROUTES (EXAMPLE subnets — match your own):
+AllowedIPs = 10.13.13.0/24,10.50.0.0/16,10.60.0.0/16
+PersistentKeepalive = 25

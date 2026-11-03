@@ -1,0 +1,28 @@
+# TEMPLATE — do not use as-is. Produce wg0.conf from this.
+#
+# EASY WAY: run ../../scripts/make-office-conf.sh peer_office.conf
+#   (it reads office/.env, writes the no-"-o" MASQUERADE, and adds static routes
+#    if OFFICE_GW is set)
+#
+# MANUAL WAY: copy this to wg0.conf (drop .template), fill the <...> from the VPS:
+#   docker exec wg-hub cat /config/peer_office/peer_office.conf   (run on the VPS)
+#   - keep every key exactly as generated
+#   - change ONLY Endpoint to the local shim (127.0.0.1:51821)
+#   - delete any "DNS =" line
+#
+# NOTE on MASQUERADE: no "-o <iface>" filter is used on purpose, so it works on
+# whatever uplink the box has (eth0, wlan0, etc.). "-o eth+" would NOT match a
+# Wi-Fi interface and silently break forwarding.
+
+[Interface]
+PrivateKey = <PrivateKey from peer_office.conf>
+Address    = <Address from peer_office.conf>
+PostUp     = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -j MASQUERADE
+PostDown   = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -j MASQUERADE
+
+[Peer]
+PublicKey    = <PublicKey from peer_office.conf>
+PresharedKey = <PresharedKey from peer_office.conf — delete this line if absent>
+Endpoint     = 127.0.0.1:51821
+AllowedIPs   = 10.13.13.0/24
+PersistentKeepalive = 25

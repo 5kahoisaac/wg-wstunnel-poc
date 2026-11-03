@@ -1,0 +1,47 @@
+# VPS = rendezvous. WireGuard server + wstunnel server.
+# Reads ./.env automatically (VPS_IP, WS_SECRET, OFFICE_ROUTES).
+#
+# After first `docker compose up -d`:
+#   - open 51820/udp AND 8443/tcp in the VPS firewall + cloud security list
+#     (Oracle = BOTH the Security List AND the instance iptables; see README)
+#   - grab peer configs:
+#       docker exec wg-hub cat /config/peer_office/peer_office.conf   # -> office box
+#       docker exec wg-hub cat /config/peer_home/peer_home.conf       # -> UDR7
+
+services:
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wg-hub
+    cap_add: [NET_ADMIN]
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - SERVERURL=${VPS_IP}
+      - SERVERPORT=51820
+      - PEERS=home,office
+      - PEERDNS=1.1.1.1
+      - INTERNAL_SUBNET=10.13.13.0
+      - ALLOWEDIPS=10.13.13.0/24,${OFFICE_ROUTES}
+      # The office peer carries exactly the office internal subnets (OFFICE_ROUTES).
+      # Scoped on purpose — NOT 0.0.0.0/0 — so home/Tailscale internet stays on WAN
+      # and only office-bound traffic crosses the tunnel (Tailscale exit node survives).
+      - SERVER_ALLOWEDIPS_PEER_office=${OFFICE_ROUTES}
+    volumes:
+      - ./config:/config
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    ports:
+      - "51820:51820/udp"     # UDR dials this (raw WireGuard)
+    restart: always
+
+  wstunnel:
+    image: ghcr.io/erebe/wstunnel:latest
+    container_name: wstunnel-server
+    entrypoint: ["/home/app/wstunnel"]
+    command: ["server","--restrict-to","wireguard:51820","--restrict-http-upgrade-path-prefix","${WS_SECRET}","wss://0.0.0.0:8443"]
+    ports:
+      - "8443:8443"           # office box dials this (wss). 8443 (not 443/8080)
+                              # because Coolify's Traefik publishes host 80/443/8080.
+                              # host 8443 is free; container also listens on 8443.
+
+    restart: always

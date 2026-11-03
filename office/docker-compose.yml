@@ -1,0 +1,31 @@
+# Office box = locked network, no open port. Dials the VPS out over wss.
+# Reads ./.env automatically (VPS_IP, WS_SECRET).
+#
+# BEFORE `docker compose up -d`:
+#   build ./config-office/wg_confs/wg0.conf from the VPS's peer_office.conf
+#   (run ../scripts/make-office-conf.sh, or edit the template by hand).
+#
+# wstunnel shares the wireguard container's network namespace, so WireGuard
+# reaches the local shim at 127.0.0.1:51821. In the -L arg, "wireguard:51820"
+# resolves ON THE VPS = the hub's WireGuard.
+
+services:
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wg-office
+    cap_add: [NET_ADMIN]
+    volumes:
+      - ./config-office:/config
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv4.ip_forward=1
+    restart: always
+
+  wstunnel:
+    image: ghcr.io/erebe/wstunnel:latest
+    container_name: wstunnel-client
+    entrypoint: ["/home/app/wstunnel"]
+    command: ["client","--http-upgrade-path-prefix","${WS_SECRET}","-L","udp://127.0.0.1:51821:wireguard:51820?timeout_sec=0","wss://${VPS_IP}:8443"]
+    network_mode: "service:wireguard"
+    depends_on: [wireguard]
+    restart: always

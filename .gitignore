@@ -1,0 +1,12 @@
+# Never commit real secrets — keep only the .example files
+.env
+**/.env
+# generated WireGuard configs (contain private keys)
+office/config-office/wg_confs/wg0.conf
+vpn-client/peer_home.conf
+peer_office.conf
+peer_home.conf
+# linuxserver wireguard runtime state
+vps/config/
+office/config-office/peer_*/
+office/config-office/*.key
